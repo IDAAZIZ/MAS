@@ -28,59 +28,23 @@ export default function AddCandidate() {
   useEffect(() => {
     if (!user || !awardId || !activeYear) return;
 
-    async function checkLocalAndCloud() {
+    async function checkPermission() {
       if (!user || !awardId || !activeYear) return;
       await localDB.syncAssignmentsFromCloud();
-      if (!isSupabaseConfigured()) {
-        const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
-        if (!assignedIds.includes(awardId)) {
-          toast.error('Akses ditolak: Kategori ini tidak ditugaskan kepada anda.');
-          navigate('/panel');
-          return;
-        }
-        const asgn = localDB.getEvaluatorAssignment(user.id, user.email, awardId, activeYear.id);
-        if (asgn?.division) {
-          setAssignedDivision(asgn.division);
-          setDivision((prev) => prev || asgn.division!);
-        }
+      const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
+      if (!assignedIds.includes(awardId)) {
+        toast.error('Akses ditolak: Kategori ini tidak ditugaskan kepada anda.');
+        navigate('/panel');
         return;
       }
-    }
-    checkLocalAndCloud();
-
-    async function checkAssignment() {
-      if (!user || !activeYear) return;
-      try {
-        const { data: evaluator } = await supabase
-          .from('evaluators')
-          .select('id')
-          .or(`profile_id.eq.${user.id},email.eq.${user.email}`)
-          .single();
-
-        if (evaluator) {
-          const { data: asgn } = await supabase
-            .from('evaluator_assignments')
-            .select('id, division')
-            .eq('evaluator_id', evaluator.id)
-            .eq('award_id', awardId)
-            .eq('award_year_id', activeYear.id)
-            .maybeSingle();
-
-          if (!asgn) {
-            toast.error('Akses ditolak: Kategori ini tidak ditugaskan kepada anda.');
-            navigate('/panel');
-            return;
-          }
-          if (asgn.division) {
-            setAssignedDivision(asgn.division);
-            setDivision((prev) => prev || asgn.division!);
-          }
-        }
-      } catch (err) {
-        console.error('Error checking assignment:', err);
+      const asgn = localDB.getEvaluatorAssignment(user.id, user.email, awardId, activeYear.id);
+      const div = asgn?.division || (user as any).division || '';
+      if (div) {
+        setAssignedDivision(div);
+        setDivision((prev) => prev || div);
       }
     }
-    checkAssignment();
+    checkPermission();
   }, [user, awardId, activeYear, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

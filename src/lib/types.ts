@@ -27,6 +27,7 @@ export interface Profile {
   roles?: UserRole[];
   phone: string | null;
   position: string | null;
+  division?: string | null;
   is_active: boolean;
   is_dummy?: boolean;
   activation_status?: 'pending' | 'active' | 'inactive';

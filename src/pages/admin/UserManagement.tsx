@@ -311,7 +311,7 @@ export default function UserManagement() {
     if (catIds.length === 0) {
       catIds = asgns.map((a) => a.award_id);
     }
-    const div = asgns[0]?.division || '';
+    const div = u.division || asgns[0]?.division || (u.position?.toUpperCase().includes('SKE') ? 'SKE' : (u.position?.toUpperCase().includes('STS') ? 'STS' : (u.position?.toUpperCase().includes('STM') ? 'STM' : (u.position?.toUpperCase().includes('SAU') ? 'SAU' : (u.position?.toUpperCase().includes('DCV') ? 'DCV' : (u.position?.toUpperCase().includes('AM') ? 'AM' : ''))))));
 
     setFormCategoryIds(catIds);
     setFormDivision(div);
@@ -405,6 +405,7 @@ export default function UserManagement() {
               username: cleanUsername,
               position: formPosition.trim() || null,
               phone: formPhone.trim() || null,
+              division: formDivision.trim() || null,
               role: formRoles[0],
               is_active: formIsActive,
             })
@@ -526,7 +527,8 @@ export default function UserManagement() {
           // SEGERAKKAN KE SUPABASE CLOUD (system_settings) SUPAYA TUGASAN DIKEMAS KINI DI SEMUA GAJET/KOMPUTER
           await localDB.saveAssignmentsToCloud(
             Array.from(targetIds),
-            formRoles.includes('panel') ? formCategoryIds : []
+            formRoles.includes('panel') ? formCategoryIds : [],
+            formDivision.trim() || null
           );
 
           // 6. Kemaskini cache Profile & Roles localDB
@@ -536,6 +538,7 @@ export default function UserManagement() {
             username: cleanUsername,
             position: formPosition.trim() || null,
             phone: formPhone.trim() || null,
+            division: formDivision.trim() || null,
             role: formRoles[0],
             roles: formRoles,
             is_active: formIsActive,
@@ -1243,16 +1246,54 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              <div>
-                <label className="label text-[11px] text-gray-600">Bahagian / Division Panel (Pilihan):</label>
-                <input
-                  type="text"
-                  value={formDivision}
-                  onChange={(e) => setFormDivision(e.target.value.toUpperCase())}
-                  placeholder="Contoh: DCV / SKE / JKM / UJK (Kekalkan sokongan division)"
-                  className="input-field text-xs uppercase"
-                />
-              </div>
+              {/* KHUSUS UNTUK PENGURUSAN PDP TERBAIK - PILIH PROGRAM */}
+              {formCategoryIds.some((id) => {
+                const aw = awards.find((a) => a.id === id);
+                return aw?.name.toLowerCase().includes('pdp') || id === 'award-12';
+              }) ? (
+                <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-300/80 space-y-1.5">
+                  <label className="label font-bold text-amber-950 text-xs mb-0 flex items-center justify-between">
+                    <span>Program / Bahagian bagi Pengurusan PdP Terbaik *</span>
+                    <Badge variant="gold" className="text-[10px] uppercase">Wajib bagi PdP</Badge>
+                  </label>
+                  <p className="text-[11px] text-amber-800 leading-tight">
+                    Sila pilih program/unit yang dinilai oleh Ketua Program / Panel ini:
+                  </p>
+                  <select
+                    value={formDivision}
+                    onChange={(e) => setFormDivision(e.target.value.toUpperCase())}
+                    className="input-field text-xs font-bold text-navy bg-white border-amber-300 focus:border-amber-500"
+                    required
+                  >
+                    <option value="">-- Sila Pilih Program --</option>
+                    <option value="SKE">SKE - Sijil Teknologi Elektrik</option>
+                    <option value="STS">STS - Sijil Teknologi Penyejukan & Penyamanan Udara</option>
+                    <option value="STM">STM - Sijil Teknologi Motosikal</option>
+                    <option value="SAU">SAU - Sijil Teknologi Automotif</option>
+                    <option value="DCV">DCV - Diploma Multimedia Kreatif</option>
+                    <option value="AM">AM - Unit Pengajian Am</option>
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="label text-[11px] text-gray-600">Bahagian / Division Panel (Pilihan):</label>
+                  <select
+                    value={formDivision}
+                    onChange={(e) => setFormDivision(e.target.value.toUpperCase())}
+                    className="input-field text-xs uppercase"
+                  >
+                    <option value="">-- Tiada Bahagian Khusus --</option>
+                    <option value="SKE">SKE</option>
+                    <option value="STS">STS</option>
+                    <option value="STM">STM</option>
+                    <option value="SAU">SAU</option>
+                    <option value="DCV">DCV</option>
+                    <option value="AM">AM</option>
+                    <option value="ADMINISTRATION">ADMINISTRATION</option>
+                    <option value="PSH">PSH</option>
+                  </select>
+                </div>
+              )}
 
               <p className="text-[11px] text-gray-500 mb-1">
                 Tandakan anugerah yang ditugaskan kepada panel ini:

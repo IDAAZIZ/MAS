@@ -103,90 +103,29 @@ export default function CandidateList() {
 
       await localDB.syncAssignmentsFromCloud();
 
-      if (!isSupabaseConfigured()) {
-        const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
-        const assigned = assignedIds.includes(awardId);
-        setIsAssigned(assigned);
-        if (!assigned) {
-          setLoading(false);
-          return;
-        }
+      const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
+      const assigned = assignedIds.includes(awardId);
 
-        const asgn = localDB.getEvaluatorAssignment(user.id, user.email, awardId, activeYear.id);
-        if (asgn?.division) {
-          setAssignedDivision(asgn.division);
-          setSelectedDivisionTab(asgn.division);
-        }
+      const asgn = localDB.getEvaluatorAssignment(user.id, user.email, awardId, activeYear.id);
+      const division = asgn?.division || profile?.division || (profile?.position?.toUpperCase().includes('SKE') ? 'SKE' : (profile?.position?.toUpperCase().includes('STS') ? 'STS' : (profile?.position?.toUpperCase().includes('STM') ? 'STM' : (profile?.position?.toUpperCase().includes('SAU') ? 'SAU' : (profile?.position?.toUpperCase().includes('DCV') ? 'DCV' : (profile?.position?.toUpperCase().includes('AM') ? 'AM' : null))))));
+      if (division) {
+        setAssignedDivision(division);
+        setSelectedDivisionTab(division);
+      }
 
-        const myCands = localDB.getCandidates(awardId, activeYear.id, user.id);
-        const joined = myCands.map((c) => ({
-          ...c,
-          evaluation: c.evaluations?.[0],
-        }));
-        setCandidates(joined);
+      setIsAssigned(assigned);
+      if (!assigned) {
         setLoading(false);
         return;
       }
-      try {
-        const { data: evaluator } = await supabase
-          .from('evaluators')
-          .select('id')
-          .or(`profile_id.eq.${user.id},email.eq.${user.email}`)
-          .single();
 
-        let assigned = false;
-        if (evaluator) {
-          const { data: asgn } = await supabase
-            .from('evaluator_assignments')
-            .select('id, division')
-            .eq('evaluator_id', evaluator.id)
-            .eq('award_id', awardId)
-            .eq('award_year_id', activeYear.id)
-            .maybeSingle();
-          assigned = !!asgn;
-          if (asgn?.division) {
-            setAssignedDivision(asgn.division);
-            setSelectedDivisionTab(asgn.division);
-          }
-        }
-        setIsAssigned(assigned);
-        if (!assigned) {
-          setLoading(false);
-          return;
-        }
-
-        const { data: myCands } = await supabase
-          .from('panel_candidates')
-          .select('*')
-          .eq('award_id', awardId)
-          .eq('award_year_id', activeYear.id)
-          .eq('panel_id', user.id)
-          .order('created_at', { ascending: true });
-
-        if (myCands && myCands.length > 0) {
-          const candIds = myCands.map((c) => c.id);
-          const { data: evals } = await supabase
-            .from('evaluations')
-            .select('*')
-            .in('panel_candidate_id', candIds)
-            .eq('panel_id', user.id);
-
-          const evalMap = new Map(evals?.map((e) => [e.panel_candidate_id, e]));
-
-          const joined = myCands.map((c) => ({
-            ...c,
-            evaluation: evalMap.get(c.id),
-          }));
-
-          setCandidates(joined);
-        } else {
-          setCandidates([]);
-        }
-      } catch (err) {
-        console.error('Error fetching candidates:', err);
-      } finally {
-        setLoading(false);
-      }
+      const myCands = localDB.getCandidates(awardId, activeYear.id, user.id);
+      const joined = myCands.map((c) => ({
+        ...c,
+        evaluation: c.evaluations?.[0],
+      }));
+      setCandidates(joined);
+      setLoading(false);
     }
 
     fetchMyCandidates();

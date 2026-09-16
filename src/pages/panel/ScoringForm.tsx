@@ -40,14 +40,15 @@ export default function ScoringForm() {
 
       await localDB.syncAssignmentsFromCloud();
 
+      const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
+      if (!assignedIds.includes(awardId)) {
+        toast.error('Akses ditolak: Anda tidak ditugaskan untuk menilai kategori ini.');
+        navigate('/panel');
+        setLoading(false);
+        return;
+      }
+
       if (!isSupabaseConfigured()) {
-        const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
-        if (!assignedIds.includes(awardId)) {
-          toast.error('Akses ditolak: Anda tidak ditugaskan untuk menilai kategori ini.');
-          navigate('/panel');
-          setLoading(false);
-          return;
-        }
 
         const awardData = localDB.getAwards().find((a) => a.id === awardId) || null;
         setAward(awardData);

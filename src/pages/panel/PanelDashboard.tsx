@@ -34,96 +34,36 @@ export default function PanelDashboard() {
       // Segerakkan tugasan kategori daripada Supabase Cloud (system_settings)
       await localDB.syncAssignmentsFromCloud();
 
-      if (!isSupabaseConfigured()) {
-        const awards = localDB.getAwards().filter((a) => a.is_active);
-        const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
-        const allCandidates = localDB.getCandidates('', activeYear.id, user.id);
+      const awards = localDB.getAwards().filter((a) => a.is_active);
+      const assignedIds = localDB.getAssignedAwardIds(user.id, user.email, activeYear.id);
+      const allCandidates = localDB.getCandidates('', activeYear.id, user.id);
 
-        const list: AssignedCategory[] = awards.map((award) => {
-          const asgn = localDB.getEvaluatorAssignment(user.id, user.email, award.id, activeYear.id);
-          let cands = allCandidates.filter((c) => c.award_id === award.id);
-          if (award.name.toLowerCase().includes('pdp') && asgn?.division) {
-            cands = cands.filter((c) => c.division?.toUpperCase() === asgn.division?.toUpperCase());
-          }
-          const formatted = cands.map((c) => {
-            const ev = c.evaluations?.[0];
-            return {
-              ...c,
-              score: ev?.total_score,
-              isSubmitted: ev?.status === 'submitted',
-            };
-          });
+      const list: AssignedCategory[] = awards.map((award) => {
+        const asgn = localDB.getEvaluatorAssignment(user.id, user.email, award.id, activeYear.id);
+        const assignedDivision = asgn?.division || profile?.division || (profile?.position?.toUpperCase().includes('SKE') ? 'SKE' : (profile?.position?.toUpperCase().includes('STS') ? 'STS' : (profile?.position?.toUpperCase().includes('STM') ? 'STM' : (profile?.position?.toUpperCase().includes('SAU') ? 'SAU' : (profile?.position?.toUpperCase().includes('DCV') ? 'DCV' : (profile?.position?.toUpperCase().includes('AM') ? 'AM' : null))))));
+        let cands = allCandidates.filter((c) => c.award_id === award.id);
+        if (award.name.toLowerCase().includes('pdp') && assignedDivision) {
+          cands = cands.filter((c) => !c.division || c.division.toUpperCase() === assignedDivision.toUpperCase());
+        }
+        const formatted = cands.map((c) => {
+          const ev = c.evaluations?.[0];
           return {
-            award,
-            myCandidates: formatted,
-            isOpen: true,
-            isAssigned: assignedIds.includes(award.id),
-            assignedDivision: asgn?.division || null,
+            ...c,
+            score: ev?.total_score,
+            isSubmitted: ev?.status === 'submitted',
           };
         });
-        setCategories(list);
-        setLoading(false);
-        return;
-      }
+        return {
+          award,
+          myCandidates: formatted,
+          isOpen: true,
+          isAssigned: assignedIds.includes(award.id),
+          assignedDivision,
+        };
+      });
 
-      try {
-        const { data: evaluator } = await supabase
-          .from('evaluators')
-          .select('id')
-          .or(`profile_id.eq.${user.id},email.eq.${user.email}`)
-          .single();
-
-        let assignments: { award_id: string; division?: string | null }[] = [];
-        if (evaluator) {
-          const { data: asgns } = await supabase
-            .from('evaluator_assignments')
-            .select('award_id, division')
-            .eq('evaluator_id', evaluator.id)
-            .eq('award_year_id', activeYear.id);
-          assignments = (asgns as any) || [];
-        }
-        const awardIds = assignments.map((a) => a.award_id);
-
-        const { data: awards } = await supabase
-          .from('awards')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order');
-
-        if (awards) {
-          const { data: myCandidates } = await supabase
-            .from('panel_candidates')
-            .select('*, evaluations:evaluations(*)')
-            .eq('panel_id', user.id)
-            .eq('award_year_id', activeYear.id);
-
-          const list: AssignedCategory[] = awards.map((award) => {
-            const cands = (myCandidates || []).filter((c: any) => c.award_id === award.id);
-            const asgn = assignments.find((a) => a.award_id === award.id);
-            const formatted = cands.map((c: any) => {
-              const ev = c.evaluations?.[0];
-              return {
-                ...c,
-                score: ev?.total_score,
-                isSubmitted: ev?.status === 'submitted',
-              };
-            });
-            return {
-              award,
-              myCandidates: formatted,
-              isOpen: true,
-              isAssigned: awardIds.includes(award.id),
-              assignedDivision: asgn?.division || null,
-            };
-          });
-
-          setCategories(list);
-        }
-      } catch (err) {
-        console.error('Error fetching panel categories:', err);
-      } finally {
-        setLoading(false);
-      }
+      setCategories(list);
+      setLoading(false);
     }
 
     fetchPanelAssignments();

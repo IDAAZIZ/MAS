@@ -543,6 +543,19 @@ export const localDB = {
         .eq('key', 'panel_assignments_sync')
         .maybeSingle();
 
+      // Muat turun panel_divisions_sync jika ada
+      let divMap: Record<string, string> = {};
+      try {
+        const { data: divData } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'panel_divisions_sync')
+          .maybeSingle();
+        if (divData?.value) {
+          divMap = JSON.parse(divData.value);
+        }
+      } catch {}
+
       if (!error && data?.value) {
         const cloudMap = JSON.parse(data.value) as Record<string, string[]>;
         setStorage(STORAGE_KEYS.CLOUD_ASSIGNMENTS, cloudMap);
@@ -555,6 +568,7 @@ export const localDB = {
           if (!userKey || !Array.isArray(awardIds)) return;
           // Buang tugasan lama bagi userKey ini
           asgns = asgns.filter((a) => !(a.evaluator_id.toLowerCase() === userKey.toLowerCase() && a.award_year_id === activeYearId));
+          const division = divMap[userKey.toLowerCase()] || divMap[userKey] || null;
           // Masukkan tugasan baharu dari cloud
           awardIds.forEach((awardId) => {
             asgns.push({
@@ -562,7 +576,7 @@ export const localDB = {
               evaluator_id: userKey,
               award_id: awardId,
               award_year_id: activeYearId,
-              division: null,
+              division,
               created_at: new Date().toISOString(),
             });
           });
@@ -577,7 +591,7 @@ export const localDB = {
     }
     return getStorage<Record<string, string[]>>(STORAGE_KEYS.CLOUD_ASSIGNMENTS, {});
   },
-  saveAssignmentsToCloud: async (userKeys: string[], awardIds: string[]): Promise<boolean> => {
+  saveAssignmentsToCloud: async (userKeys: string[], awardIds: string[], division?: string | null): Promise<boolean> => {
     try {
       const currentMap = localDB.getCloudAssignments();
       userKeys.forEach((key) => {
@@ -590,15 +604,48 @@ export const localDB = {
 
       // Simpan ke Supabase system_settings
       const jsonVal = JSON.stringify(currentMap);
-      const { error } = await supabase
+      await supabase
         .from('system_settings')
         .upsert(
           { key: 'panel_assignments_sync', value: jsonVal, updated_at: new Date().toISOString() },
           { onConflict: 'key' }
         );
 
+      if (division !== undefined) {
+        let divMap: Record<string, string> = {};
+        try {
+          const { data: divData } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'panel_divisions_sync')
+            .maybeSingle();
+          if (divData?.value) {
+            divMap = JSON.parse(divData.value);
+          }
+        } catch {}
+
+        userKeys.forEach((key) => {
+          if (key) {
+            if (division) {
+              divMap[key.toLowerCase()] = division;
+              divMap[key] = division;
+            } else {
+              delete divMap[key.toLowerCase()];
+              delete divMap[key];
+            }
+          }
+        });
+
+        await supabase
+          .from('system_settings')
+          .upsert(
+            { key: 'panel_divisions_sync', value: JSON.stringify(divMap), updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+          );
+      }
+
       window.dispatchEvent(new Event('kkbda_assignments_changed'));
-      return !error;
+      return true;
     } catch (e) {
       console.warn('Save assignments to cloud notice:', e);
       return false;
@@ -740,11 +787,31 @@ export const localDB = {
         const asgnEvalLower = (a.evaluator_id || '').toLowerCase();
         for (const k of candidateKeys) {
           if (k.toLowerCase() === asgnEvalLower) {
-            return a;
+            let div = a.division;
+            if (!div) {
+              const prof = localDB.getProfiles().find(p => candidateKeys.has(p.id) || (p.username && candidateKeys.has(p.username)));
+              div = prof?.division || (prof?.position?.toUpperCase().includes('SKE') ? 'SKE' : (prof?.position?.toUpperCase().includes('STS') ? 'STS' : (prof?.position?.toUpperCase().includes('STM') ? 'STM' : (prof?.position?.toUpperCase().includes('SAU') ? 'SAU' : (prof?.position?.toUpperCase().includes('DCV') ? 'DCV' : (prof?.position?.toUpperCase().includes('AM') ? 'AM' : null))))));
+            }
+            return { ...a, division: div || null };
           }
         }
       }
     }
+
+    const cloudAwards = localDB.getAssignedAwardIds(userId, userEmail, yearId);
+    if (cloudAwards.includes(awardId)) {
+      const prof = localDB.getProfiles().find(p => candidateKeys.has(p.id) || (p.username && candidateKeys.has(p.username)));
+      const div = prof?.division || (prof?.position?.toUpperCase().includes('SKE') ? 'SKE' : (prof?.position?.toUpperCase().includes('STS') ? 'STS' : (prof?.position?.toUpperCase().includes('STM') ? 'STM' : (prof?.position?.toUpperCase().includes('SAU') ? 'SAU' : (prof?.position?.toUpperCase().includes('DCV') ? 'DCV' : (prof?.position?.toUpperCase().includes('AM') ? 'AM' : null))))));
+      return {
+        id: `asgn-cloud-${userId}-${awardId}`,
+        evaluator_id: userId,
+        award_id: awardId,
+        award_year_id: yearId || 'year-2026',
+        division: div || null,
+        created_at: new Date().toISOString(),
+      };
+    }
+
     return null;
   },
 
