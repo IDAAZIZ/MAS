@@ -1077,6 +1077,36 @@ export const localDB = {
       ].filter(Boolean) as string[]
     );
 
+    // Padankan semua rekod evaluators dan profiles yang berkaitan
+    evals.forEach((e) => {
+      const match =
+        (userId && (e.profile_id === userId || e.id === userId)) ||
+        (cleanEmail && e.email && e.email.toLowerCase() === cleanEmail) ||
+        (profile && profile.full_name && e.name && e.name.toLowerCase().trim() === profile.full_name.toLowerCase().trim()) ||
+        (evaluator && evaluator.name && e.name && e.name.toLowerCase().trim() === evaluator.name.toLowerCase().trim());
+      if (match) {
+        if (e.id) candidateKeys.add(e.id);
+        if (e.profile_id) candidateKeys.add(e.profile_id);
+        if (e.email) {
+          candidateKeys.add(e.email.toLowerCase());
+          candidateKeys.add(e.email.split('@')[0].toLowerCase());
+        }
+      }
+    });
+
+    profiles.forEach((p) => {
+      const match =
+        (userId && p.id === userId) ||
+        (cleanEmail && p.email && p.email.toLowerCase() === cleanEmail) ||
+        (derivedUsername && p.username && p.username.toLowerCase() === derivedUsername) ||
+        (evaluator && evaluator.name && p.full_name && p.full_name.toLowerCase().trim() === evaluator.name.toLowerCase().trim());
+      if (match) {
+        if (p.id) candidateKeys.add(p.id);
+        if (p.username) candidateKeys.add(p.username.toLowerCase());
+        if (p.email) candidateKeys.add(p.email.toLowerCase());
+      }
+    });
+
     const resultAwardIds = new Set<string>();
 
     // 1. Semak padanan dalam cloudMap (Supabase system_settings sync)
@@ -1103,6 +1133,32 @@ export const localDB = {
         }
       }
     });
+
+    // 3. Fallback pemetaan rasmi panel KKBDA jika belum ditetapkan secara khusus
+    if (resultAwardIds.size === 0) {
+      const checkNames = [profile?.full_name, evaluator?.name].filter(Boolean).map((n) => n!.toLowerCase());
+      if (checkNames.some((n) => n.includes('ilyas')) || candidateKeys.has('tpp') || candidateKeys.has('tpp@auth.eapresiasi.local')) {
+        ['award-1', 'award-2', 'award-3', 'award-13', 'award-14', 'award-15'].forEach((id) => resultAwardIds.add(id));
+      } else if (checkNames.some((n) => n.includes('norhashimah')) || candidateKeys.has('tpa') || candidateKeys.has('tpa@auth.eapresiasi.local')) {
+        ['award-4', 'award-5', 'award-6', 'award-7', 'award-8'].forEach((id) => resultAwardIds.add(id));
+      } else if (checkNames.some((n) => n.includes('salleh')) || candidateKeys.has('kpske') || candidateKeys.has('kpske@auth.eapresiasi.local')) {
+        resultAwardIds.add('award-12');
+      } else if (checkNames.some((n) => n.includes('ainul')) || candidateKeys.has('kpstm') || candidateKeys.has('kpstm@auth.eapresiasi.local')) {
+        resultAwardIds.add('award-12');
+      } else if (checkNames.some((n) => n.includes('rosnah')) || candidateKeys.has('kpsts') || candidateKeys.has('kpsts@auth.eapresiasi.local')) {
+        resultAwardIds.add('award-12');
+      } else if (checkNames.some((n) => n.includes('firdaus')) || candidateKeys.has('kpdcv') || candidateKeys.has('kpdcv@auth.eapresiasi.local')) {
+        resultAwardIds.add('award-12');
+      } else if (checkNames.some((n) => n.includes('rosmaidi')) || candidateKeys.has('kppam') || candidateKeys.has('kppam@auth.eapresiasi.local')) {
+        resultAwardIds.add('award-12');
+      } else if (checkNames.some((n) => n.includes('jamil')) || candidateKeys.has('kpsau') || candidateKeys.has('kpsau@auth.eapresiasi.local')) {
+        resultAwardIds.add('award-12');
+      } else if (checkNames.some((n) => n.includes('azzah')) || candidateKeys.has('colab') || candidateKeys.has('colab@auth.eapresiasi.local')) {
+        resultAwardIds.add('award-8');
+      } else if (checkNames.some((n) => n.includes('muffili')) || candidateKeys.has('kupik') || candidateKeys.has('kupik@auth.eapresiasi.local')) {
+        ['award-5', 'award-6'].forEach((id) => resultAwardIds.add(id));
+      }
+    }
 
     return Array.from(resultAwardIds);
   },
