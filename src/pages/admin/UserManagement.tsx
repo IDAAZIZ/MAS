@@ -94,7 +94,10 @@ export default function UserManagement() {
     let loadedEvaluators: Evaluator[] = [];
     let loadedAssignments: EvaluatorAssignment[] = [];
 
-    // Baca terus dari Supabase jika configured
+    // 1. Segerakkan tugasan anugerah dari Supabase Cloud (system_settings)
+    await localDB.syncAssignmentsFromCloud();
+
+    // 2. Baca terus dari Supabase jika configured
     if (isSupabaseConfigured()) {
       try {
         const [profRes, evRes, asgRes, rolesRes] = await Promise.all([
@@ -117,13 +120,23 @@ export default function UserManagement() {
               roles: roles.length > 0 ? roles : p.roles || [p.role],
             };
           });
+          // Simpan ke localDB cache supaya sentiasa tersedia
+          loadedProfiles.forEach((lp) => localDB.saveProfile(lp));
         }
         if (dbEvaluators.length > 0) loadedEvaluators = dbEvaluators;
         if (dbAssignments.length > 0) loadedAssignments = dbAssignments;
       } catch {}
     }
 
-    // Gabungkan profiles dari localDB jika ada rekod luar talian
+    // 3. Gabungkan evaluators dari localDB terlebih dahulu
+    const localEvals = localDB.getEvaluators();
+    localEvals.forEach((le) => {
+      if (!loadedEvaluators.some((e) => e.id === le.id || (e.email && le.email && e.email.toLowerCase() === le.email.toLowerCase()))) {
+        loadedEvaluators.push(le);
+      }
+    });
+
+    // 4. Gabungkan profiles dari localDB jika ada rekod luar talian
     const localProfiles = localDB.getProfiles();
     const map = new Map<string, Profile>();
 
@@ -164,14 +177,6 @@ export default function UserManagement() {
       }
     });
 
-    // Gabungkan evaluators dari localDB
-    const localEvals = localDB.getEvaluators();
-    localEvals.forEach((le) => {
-      if (!loadedEvaluators.some((e) => e.id === le.id || (e.email && le.email && e.email.toLowerCase() === le.email.toLowerCase()))) {
-        loadedEvaluators.push(le);
-      }
-    });
-
     // Gabungkan assignments dari localDB
     try {
       const rawLocalAsgns = localStorage.getItem('kkbda_assignments');
@@ -184,9 +189,6 @@ export default function UserManagement() {
         });
       }
     } catch {}
-
-    // Segerakkan tugasan anugerah dari Supabase Cloud (system_settings)
-    await localDB.syncAssignmentsFromCloud();
 
     const combined = Array.from(map.values()).map((prof) => {
       const ev = loadedEvaluators.find(

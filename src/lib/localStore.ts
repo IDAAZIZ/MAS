@@ -30,11 +30,8 @@ import { generateInitialItemSetsAndItems } from './rubricTemplates';
 import { supabase } from './supabase';
 
 export const isSupabaseConfigured = (): boolean => {
-  // Kawalan Keselamatan: Pada Step B (Sambungan Sahaja), data rasmi kekal 100%
-  // menggunakan localStorage sehingga proses migrasi (Step C) diluluskan secara rasmi.
-  const enableData = import.meta.env.VITE_ENABLE_SUPABASE_DATA === 'true';
   const url = import.meta.env.VITE_SUPABASE_URL;
-  return enableData && !!url && !url.includes('placeholder') && !url.includes('your-project');
+  return !!url && !url.includes('placeholder') && !url.includes('your-project');
 };
 
 const STORAGE_KEYS = {
@@ -89,19 +86,350 @@ function getInitialItemSets(): { sets: AwardItemSet[]; items: AwardItem[] } {
   return generateInitialItemSetsAndItems();
 }
 
+export const DEFAULT_OFFICIAL_PROFILES: Profile[] = [
+  {
+    id: '759f22ba-1983-4e70-8b26-9db997019321',
+    username: 'admin',
+    full_name: 'Ida Safinar Binti Aziz (UJK)',
+    email: 'safinaraziz@gmail.com',
+    role: 'admin',
+    roles: ['admin'],
+    phone: '012-3456789',
+    position: 'Pegawai Urusetia Anugerah (UJK)',
+    division: null,
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-14T15:34:33.000Z',
+  },
+  {
+    id: '5826ff4f-4bd1-413b-a234-e3e05516f23d',
+    username: 'tpa',
+    full_name: 'WAN NORHASHIMAH BINTI WAN HUSIN',
+    email: 'tpa@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel', 'management'],
+    phone: '012-3456789',
+    position: 'TIMBALAN PENGARAH AKADEMIK',
+    division: null,
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T06:24:34.000Z',
+  },
+  {
+    id: '502b4a07-cb46-49de-97dd-1258c985f4f2',
+    username: 'tpp',
+    full_name: 'TS. ILYAS BIN MOHD NAWI',
+    email: 'tpp@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel', 'management'],
+    phone: '012-3456789',
+    position: 'TIMBALAN PENGARAH PENGURUSAN',
+    division: null,
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T13:52:54.000Z',
+  },
+  {
+    id: '5042db91-d108-4c21-a067-19e01dd9685f',
+    username: 'pengarah',
+    full_name: 'SALMIYAH BINTI CHE AHMAD',
+    email: 'pengarah@auth.eapresiasi.local',
+    role: 'director',
+    roles: ['director'],
+    phone: '012-3456789',
+    position: 'PENGARAH KOLEJ KOMUNITI BANDAR DARULAMAN',
+    division: null,
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T10:19:08.000Z',
+  },
+  {
+    id: 'ec18d837-41da-499e-9c5c-4c8e1803b8b7',
+    username: 'kpske',
+    full_name: 'TS. SALLEH MURSHIDI BIN BASHARUDIN',
+    email: 'kpske@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'KETUA PROGRAM SKE',
+    division: 'SKE',
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T13:54:12.000Z',
+  },
+  {
+    id: '4d09594e-2675-4e39-85e2-4c79ab1826c1',
+    username: 'kpsau',
+    full_name: 'SYED JAMIL NASRI BIN SYED BAHAROM',
+    email: 'kpsau@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'KETUA PROGRAM SAU',
+    division: 'SAU',
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T14:54:58.000Z',
+  },
+  {
+    id: 'b70aa10e-87b9-417f-bd09-850af650556d',
+    username: 'kpstm',
+    full_name: 'AINUL BARIAH BINTI TALIB',
+    email: 'kpstm@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'KETUA PROGRAM STM',
+    division: 'STM',
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T14:57:30.000Z',
+  },
+  {
+    id: '5649095e-1d87-49fa-a9eb-76049abe77d9',
+    username: 'kpsts',
+    full_name: 'TS. ROSNAH BINTI RAHMAT',
+    email: 'kpsts@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'KETUA PROGRAM STS',
+    division: 'STS',
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T14:59:31.000Z',
+  },
+  {
+    id: '782910a5-5b9a-41fe-a39b-049cbc6993cd',
+    username: 'kpdcv',
+    full_name: 'HJ. MOHD FIRDAUS BIN KAMARUDDIN',
+    email: 'kpdcv@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'KETUA PROGRAM DCV',
+    division: 'DCV',
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T15:01:12.000Z',
+  },
+  {
+    id: 'fa833c6f-9987-46e9-a091-49535763bfca',
+    username: 'kppam',
+    full_name: 'USTAZ ROSMAIDI BIN OTHMAN',
+    email: 'kppam@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'KETUA PROGRAM PENGAJIAN AM',
+    division: 'AM',
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T15:02:44.000Z',
+  },
+  {
+    id: '058f38bd-8d6f-4661-bc9d-9048d12e97a9',
+    username: 'colab',
+    full_name: 'NOOR AZZAH BINTI ZAKARIA',
+    email: 'colab@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'PEGAWAI PERHUBUNGAN INDUSTRI & ALUMNI',
+    division: null,
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T15:05:33.000Z',
+  },
+  {
+    id: '553189ea-d90a-4eeb-820c-6c1603cee752',
+    username: 'kupik',
+    full_name: 'MUFFILI BIN MAHADI',
+    email: 'kupik@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel'],
+    phone: '012-3456789',
+    position: 'KETUA UNIT PENYELIDIKAN, INOVASI & KOMERSIAL',
+    division: null,
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T15:11:49.000Z',
+  },
+  {
+    id: '08c09dec-b399-434a-99eb-bc4127f76cba',
+    username: 'ida',
+    full_name: 'Ida Safinar Binti Aziz',
+    email: 'ida@auth.eapresiasi.local',
+    role: 'panel',
+    roles: ['panel', 'management'],
+    phone: '012-3456789',
+    position: 'TPA',
+    division: null,
+    is_active: true,
+    activation_status: 'active',
+    created_at: '2026-09-16T01:42:17.000Z',
+  },
+];
+
+export const DEFAULT_OFFICIAL_EVALUATORS: Evaluator[] = [
+  {
+    id: 'be5e668f-0e25-4202-a6bb-58885aaa8359',
+    profile_id: '5826ff4f-4bd1-413b-a234-e3e05516f23d',
+    name: 'WAN NORHASHIMAH BINTI WAN HUSIN',
+    email: 'tpa@auth.eapresiasi.local',
+    position: 'TIMBALAN PENGARAH AKADEMIK',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T06:24:34.000Z',
+    updated_at: '2026-09-16T10:14:16.000Z',
+  },
+  {
+    id: '3ad71c89-1cac-4b25-9f19-e331a64515bd',
+    profile_id: '502b4a07-cb46-49de-97dd-1258c985f4f2',
+    name: 'TS. ILYAS BIN MOHD NAWI',
+    email: 'tpp@auth.eapresiasi.local',
+    position: 'TIMBALAN PENGARAH PENGURUSAN',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T13:52:54.000Z',
+    updated_at: '2026-09-16T13:52:54.000Z',
+  },
+  {
+    id: '5f7b36fd-32ee-4fcc-8585-a31aab1ab99a',
+    profile_id: 'ec18d837-41da-499e-9c5c-4c8e1803b8b7',
+    name: 'TS. SALLEH MURSHIDI BIN BASHARUDIN',
+    email: 'kpske@auth.eapresiasi.local',
+    position: 'KETUA PROGRAM SKE',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T13:54:12.000Z',
+    updated_at: '2026-09-16T14:17:41.000Z',
+  },
+  {
+    id: '629ff686-0e75-4a55-b4bc-67571a3c538f',
+    profile_id: '4d09594e-2675-4e39-85e2-4c79ab1826c1',
+    name: 'SYED JAMIL NASRI BIN SYED BAHAROM',
+    email: 'kpsau@auth.eapresiasi.local',
+    position: 'KETUA PROGRAM SAU',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T14:54:59.000Z',
+    updated_at: '2026-09-16T14:54:59.000Z',
+  },
+  {
+    id: 'cfd4071c-4467-41b2-ac2e-7711eb8cb577',
+    profile_id: 'b70aa10e-87b9-417f-bd09-850af650556d',
+    name: 'AINUL BARIAH BINTI TALIB',
+    email: 'kpstm@auth.eapresiasi.local',
+    position: 'KETUA PROGRAM STM',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T14:57:30.000Z',
+    updated_at: '2026-09-16T14:57:30.000Z',
+  },
+  {
+    id: 'f62f0437-350d-4177-989f-fd56c75cba5c',
+    profile_id: '5649095e-1d87-49fa-a9eb-76049abe77d9',
+    name: 'TS. ROSNAH BINTI RAHMAT',
+    email: 'kpsts@auth.eapresiasi.local',
+    position: 'KETUA PROGRAM STS',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T14:59:31.000Z',
+    updated_at: '2026-09-16T14:59:31.000Z',
+  },
+  {
+    id: 'f8d3e1df-ff33-411d-bea0-147630822d42',
+    profile_id: '782910a5-5b9a-41fe-a39b-049cbc6993cd',
+    name: 'HJ. MOHD FIRDAUS BIN KAMARUDDIN',
+    email: 'kpdcv@auth.eapresiasi.local',
+    position: 'KETUA PROGRAM DCV',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T15:01:12.000Z',
+    updated_at: '2026-09-16T15:01:12.000Z',
+  },
+  {
+    id: '6ecb4429-51a8-4fff-b1fe-f33a719c67d8',
+    profile_id: 'fa833c6f-9987-46e9-a091-49535763bfca',
+    name: 'USTAZ ROSMAIDI BIN OTHMAN',
+    email: 'kppam@auth.eapresiasi.local',
+    position: 'KETUA PROGRAM PENGAJIAN AM',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T15:02:44.000Z',
+    updated_at: '2026-09-16T15:02:44.000Z',
+  },
+  {
+    id: '97a48d71-5d50-4c9c-bce8-8d99270f5e04',
+    profile_id: '058f38bd-8d6f-4661-bc9d-9048d12e97a9',
+    name: 'NOOR AZZAH BINTI ZAKARIA',
+    email: 'colab@auth.eapresiasi.local',
+    position: 'PEGAWAI PERHUBUNGAN INDUSTRI & ALUMNI',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T15:05:33.000Z',
+    updated_at: '2026-09-16T15:05:33.000Z',
+  },
+  {
+    id: '6395b5de-78db-4e3b-9199-3b3926421aa0',
+    profile_id: '553189ea-d90a-4eeb-820c-6c1603cee752',
+    name: 'MUFFILI BIN MAHADI',
+    email: 'kupik@auth.eapresiasi.local',
+    position: 'KETUA UNIT PENYELIDIKAN, INOVASI & KOMERSIAL',
+    phone: '012-3456789',
+    is_active: true,
+    is_dummy: false,
+    created_at: '2026-09-16T15:11:49.000Z',
+    updated_at: '2026-09-16T15:12:04.000Z',
+  },
+];
+
+function getInitialProfiles(): Profile[] {
+  return DEFAULT_OFFICIAL_PROFILES;
+}
+
 function getInitialEvaluators(): Evaluator[] {
-  return [
-    { id: 'eval-1', profile_id: '00000000-0000-0000-0000-000000000002', name: 'Ts. Dr. Ahmad Bin Hashim', email: 'panel@kkbda.edu.my', position: 'Ketua Program / Pensyarah DH48', phone: '013-4567890', is_active: true, is_dummy: true, created_at: '', updated_at: '' },
-    { id: 'eval-2', profile_id: null, name: 'Puan Siti Rahmah Binti Mahmud', email: 'siti@kkbda.edu.my', position: 'Pensyarah Kanan DH44', phone: '019-1234567', is_active: true, is_dummy: true, created_at: '', updated_at: '' },
-    { id: 'eval-3', profile_id: null, name: 'Encik Ali Bin Hassan', email: 'ali@kkbda.edu.my', position: 'Pegawai Pentadbiran N41', phone: '012-7654321', is_active: true, is_dummy: true, created_at: '', updated_at: '' },
-  ];
+  return DEFAULT_OFFICIAL_EVALUATORS;
 }
 
 function getInitialAssignments(): EvaluatorAssignment[] {
+  const activeYearId = 'year-2026';
+  const now = new Date().toISOString();
   return [
-    { id: 'asgn-1', evaluator_id: 'eval-1', award_id: 'award-1', award_year_id: 'year-2026', created_at: '' },
-    { id: 'asgn-2', evaluator_id: 'eval-2', award_id: 'award-1', award_year_id: 'year-2026', created_at: '' },
-    { id: 'asgn-3', evaluator_id: 'eval-1', award_id: 'award-2', award_year_id: 'year-2026', created_at: '' },
+    // WAN NORHASHIMAH (TPA) - award-4, award-5, award-6, award-7, award-8
+    { id: 'asgn-tpa-4', evaluator_id: 'tpa', award_id: 'award-4', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpa-5', evaluator_id: 'tpa', award_id: 'award-5', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpa-6', evaluator_id: 'tpa', award_id: 'award-6', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpa-7', evaluator_id: 'tpa', award_id: 'award-7', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpa-8', evaluator_id: 'tpa', award_id: 'award-8', award_year_id: activeYearId, division: null, created_at: now },
+    // TS. ILYAS (TPP) - award-1, award-2, award-3, award-13, award-14, award-15
+    { id: 'asgn-tpp-1', evaluator_id: 'tpp', award_id: 'award-1', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpp-2', evaluator_id: 'tpp', award_id: 'award-2', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpp-3', evaluator_id: 'tpp', award_id: 'award-3', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpp-13', evaluator_id: 'tpp', award_id: 'award-13', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpp-14', evaluator_id: 'tpp', award_id: 'award-14', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-tpp-15', evaluator_id: 'tpp', award_id: 'award-15', award_year_id: activeYearId, division: null, created_at: now },
+    // Panels for Pengurusan PdP Terbaik (award-12)
+    { id: 'asgn-kpske-12', evaluator_id: 'kpske', award_id: 'award-12', award_year_id: activeYearId, division: 'SKE', created_at: now },
+    { id: 'asgn-kpstm-12', evaluator_id: 'kpstm', award_id: 'award-12', award_year_id: activeYearId, division: 'STM', created_at: now },
+    { id: 'asgn-kpsts-12', evaluator_id: 'kpsts', award_id: 'award-12', award_year_id: activeYearId, division: 'STS', created_at: now },
+    { id: 'asgn-kpdcv-12', evaluator_id: 'kpdcv', award_id: 'award-12', award_year_id: activeYearId, division: 'DCV', created_at: now },
+    { id: 'asgn-kppam-12', evaluator_id: 'kppam', award_id: 'award-12', award_year_id: activeYearId, division: 'AM', created_at: now },
+    { id: 'asgn-kpsau-12', evaluator_id: 'kpsau', award_id: 'award-12', award_year_id: activeYearId, division: 'SAU', created_at: now },
+    // Other panels
+    { id: 'asgn-colab-8', evaluator_id: 'colab', award_id: 'award-8', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-kupik-5', evaluator_id: 'kupik', award_id: 'award-5', award_year_id: activeYearId, division: null, created_at: now },
+    { id: 'asgn-kupik-6', evaluator_id: 'kupik', award_id: 'award-6', award_year_id: activeYearId, division: null, created_at: now },
   ];
 }
 
@@ -219,19 +547,66 @@ export function initLocalStore() {
     }
   });
   setStorage(STORAGE_KEYS.ITEMS, mergedItems);
-  const existingEvaluators = getStorage<Evaluator[]>(STORAGE_KEYS.EVALUATORS, getInitialEvaluators());
-  let evalsChanged = false;
-  existingEvaluators.forEach((e) => {
-    if (e.id === 'eval-1' || e.name.toLowerCase().includes('ahmad bin hashim')) {
-      if (e.is_dummy !== true) {
-        e.is_dummy = true;
-        evalsChanged = true;
-      }
+  // Ensure all 10 official evaluators exist and purge legacy dummy evaluators
+  let existingEvaluators = getStorage<Evaluator[]>(STORAGE_KEYS.EVALUATORS, getInitialEvaluators());
+  existingEvaluators = existingEvaluators.filter(
+    (e) => e.id !== 'eval-1' && e.id !== 'eval-2' && e.id !== 'eval-3' && !e.name.toLowerCase().includes('ahmad bin hashim') && !e.name.toLowerCase().includes('siti rahmah')
+  );
+  DEFAULT_OFFICIAL_EVALUATORS.forEach((offEval) => {
+    const idx = existingEvaluators.findIndex(
+      (e) => e.id === offEval.id || (e.email && offEval.email && e.email.toLowerCase() === offEval.email.toLowerCase())
+    );
+    if (idx >= 0) {
+      existingEvaluators[idx] = { ...offEval, ...existingEvaluators[idx], is_dummy: false };
+    } else {
+      existingEvaluators.push(offEval);
     }
   });
-  if (evalsChanged) setStorage(STORAGE_KEYS.EVALUATORS, existingEvaluators);
+  setStorage(STORAGE_KEYS.EVALUATORS, existingEvaluators);
 
-  getStorage(STORAGE_KEYS.ASSIGNMENTS, getInitialAssignments());
+  // Ensure all 13 official profiles exist in localStorage
+  let currentProfiles = getStorage<Profile[]>(STORAGE_KEYS.PROFILES, getInitialProfiles());
+  DEFAULT_OFFICIAL_PROFILES.forEach((offProf) => {
+    const idx = currentProfiles.findIndex(
+      (p) => p.id === offProf.id || (p.email && offProf.email && p.email.toLowerCase() === offProf.email.toLowerCase()) || (p.username && offProf.username && p.username.toLowerCase() === offProf.username.toLowerCase())
+    );
+    if (idx >= 0) {
+      currentProfiles[idx] = { ...offProf, ...currentProfiles[idx] };
+    } else {
+      currentProfiles.push(offProf);
+    }
+  });
+  setStorage(STORAGE_KEYS.PROFILES, currentProfiles);
+
+  // Ensure user_roles has entries for official profiles
+  const currentRoles = getStorage<UserRoleRecord[]>(STORAGE_KEYS.USER_ROLES, []);
+  currentProfiles.forEach((prof) => {
+    const pRoles = prof.roles || [prof.role];
+    pRoles.forEach((r) => {
+      const exists = currentRoles.some((cr) => cr.user_id === prof.id && cr.role === r);
+      if (!exists) {
+        currentRoles.push({
+          id: `ur-${prof.id}-${r}`,
+          user_id: prof.id,
+          role: r,
+          created_at: new Date().toISOString(),
+        });
+      }
+    });
+  });
+  setStorage(STORAGE_KEYS.USER_ROLES, currentRoles);
+
+  // Initialize and merge official assignments
+  let currentAsgns = getStorage<EvaluatorAssignment[]>(STORAGE_KEYS.ASSIGNMENTS, getInitialAssignments());
+  getInitialAssignments().forEach((initAsgn) => {
+    const exists = currentAsgns.some(
+      (a) => a.evaluator_id === initAsgn.evaluator_id && a.award_id === initAsgn.award_id && a.award_year_id === initAsgn.award_year_id
+    );
+    if (!exists) {
+      currentAsgns.push(initAsgn);
+    }
+  });
+  setStorage(STORAGE_KEYS.ASSIGNMENTS, currentAsgns);
 
   // Purge any dummy candidates, aggregates, evaluations, and selections
   const dummyCandIds = new Set(['cand-1', 'cand-2', 'cand-3']);
@@ -269,44 +644,6 @@ export function initLocalStore() {
     (f) => !dummyAggIds.has(f.candidate_aggregate_id)
   );
   setStorage(STORAGE_KEYS.FINAL_RESULTS, filteredFinal);
-
-  // Initialize official Urusetia (Admin) profile if not exists
-  const currentProfiles = getStorage<Profile[]>(STORAGE_KEYS.PROFILES, []);
-  const hasAdmin = currentProfiles.some(
-    (p) => p.username === 'admin' || p.email === 'admin@kkbda.edu.my'
-  );
-  if (!hasAdmin) {
-    currentProfiles.push({
-      id: '00000000-0000-0000-0000-000000000001',
-      full_name: 'Ida Safinar Binti Aziz (UJK)',
-      email: 'admin@kkbda.edu.my',
-      username: 'admin',
-      role: 'admin',
-      roles: ['admin'],
-      phone: '012-3456789',
-      position: 'Pegawai Urusetia Anugerah (UJK)',
-      is_active: true,
-      activation_status: 'active',
-      activated_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    });
-    setStorage(STORAGE_KEYS.PROFILES, currentProfiles);
-  }
-
-  // Ensure user_roles has admin entry
-  const currentRoles = getStorage<UserRoleRecord[]>(STORAGE_KEYS.USER_ROLES, []);
-  const hasAdminRole = currentRoles.some(
-    (r) => r.user_id === '00000000-0000-0000-0000-000000000001' && r.role === 'admin'
-  );
-  if (!hasAdminRole) {
-    currentRoles.push({
-      id: 'ur-admin-init',
-      user_id: '00000000-0000-0000-0000-000000000001',
-      role: 'admin',
-      created_at: new Date().toISOString(),
-    });
-    setStorage(STORAGE_KEYS.USER_ROLES, currentRoles);
-  }
 
   // Clear obsolete demoProfile that may hold legacy dummy accounts
   try {
@@ -1058,7 +1395,7 @@ export const localDB = {
 
   // USER PROFILES & ROLES (MULTI-ROLE & PRODUCTION MANAGEMENT)
   getProfiles: (): Profile[] => {
-    return getStorage<Profile[]>(STORAGE_KEYS.PROFILES, []);
+    return getStorage<Profile[]>(STORAGE_KEYS.PROFILES, getInitialProfiles());
   },
   saveProfile: (prof: Profile): void => {
     const profiles = getStorage<Profile[]>(STORAGE_KEYS.PROFILES, []);

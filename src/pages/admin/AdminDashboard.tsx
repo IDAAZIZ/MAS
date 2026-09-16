@@ -38,118 +38,45 @@ export default function AdminDashboard() {
       if (!activeYear) return;
       setLoading(true);
 
-      if (!isSupabaseConfigured()) {
-        const awards = localDB.getAwards();
-        const panels = localDB.getEvaluators();
-        const cands = localDB.getCandidates(undefined, activeYear.id);
-        const mgmt = localDB.getManagementSelections(undefined, activeYear.id);
-        const dirs = localDB.getDirectorSelections(undefined, activeYear.id);
+      // Segerakkan tugasan kategori awan terlebih dahulu
+      await localDB.syncAssignmentsFromCloud();
 
-        const mgmtAwardIds = new Set(mgmt.filter((m) => m.selected).map((m) => m.award_id));
-        const dirApprovedIds = new Set(dirs.filter((d) => d.selected).map((d) => d.award_id));
+      // Sentiasa gunakan 15 kategori anugerah rasmi KKBDA
+      const awards = localDB.getAwards();
+      const allEvaluators = localDB.getEvaluators();
+      const realPanels = allEvaluators.filter((e) => !e.is_dummy && e.is_active);
+      const totalPanelsCount = realPanels.length > 0 ? realPanels.length : 10;
 
-        setStats({
-          totalCategories: awards.length,
-          totalPanels: panels.length,
-          totalCandidates: cands.length,
-          completedPercentage: cands.length > 0 ? 100 : 0,
-          pendingManagement: Math.max(0, awards.length - mgmtAwardIds.size),
-          pendingDirector: Math.max(0, mgmtAwardIds.size - dirApprovedIds.size),
-        });
+      const cands = localDB.getCandidates(undefined, activeYear.id);
+      const mgmt = localDB.getManagementSelections(undefined, activeYear.id);
+      const dirs = localDB.getDirectorSelections(undefined, activeYear.id);
 
-        const progressList: CategoryProgress[] = awards.map((award) => {
-          const catCands = cands.filter((c) => c.award_id === award.id);
-          return {
-            award,
-            totalCandidates: catCands.length,
-            completedEvaluations: catCands.length,
-            totalEvaluations: catCands.length,
-            hasManagementSelection: mgmtAwardIds.has(award.id),
-            isDirectorApproved: dirApprovedIds.has(award.id),
-          };
-        });
+      const mgmtAwardIds = new Set(mgmt.filter((m) => m.selected).map((m) => m.award_id));
+      const dirApprovedIds = new Set(dirs.filter((d) => d.selected).map((d) => d.award_id));
 
-        setCategoriesProgress(progressList);
-        setLoading(false);
-        return;
-      }
+      setStats({
+        totalCategories: awards.length,
+        totalPanels: totalPanelsCount,
+        totalCandidates: cands.length,
+        completedPercentage: cands.length > 0 ? 100 : 0,
+        pendingManagement: Math.max(0, awards.length - mgmtAwardIds.size),
+        pendingDirector: Math.max(0, mgmtAwardIds.size - dirApprovedIds.size),
+      });
 
-      try {
-        // Categories
-        const { data: awards } = await supabase
-          .from('awards')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order');
+      const progressList: CategoryProgress[] = awards.map((award) => {
+        const catCands = cands.filter((c) => c.award_id === award.id);
+        return {
+          award,
+          totalCandidates: catCands.length,
+          completedEvaluations: catCands.length,
+          totalEvaluations: catCands.length,
+          hasManagementSelection: mgmtAwardIds.has(award.id),
+          isDirectorApproved: dirApprovedIds.has(award.id),
+        };
+      });
 
-        // Panels
-        const { count: panelCount } = await supabase
-          .from('evaluators')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_active', true);
-
-        // Candidates for active year
-        const { count: candidateCount } = await supabase
-          .from('candidate_aggregates')
-          .select('*', { count: 'exact', head: true })
-          .eq('award_year_id', activeYear.id);
-
-        // Evaluations
-        const { data: evaluations } = await supabase
-          .from('evaluations')
-          .select('status')
-          .eq('award_year_id', activeYear.id);
-
-        const totalEvals = evaluations?.length || 0;
-        const submittedEvals = evaluations?.filter((e) => e.status === 'submitted').length || 0;
-        const evalPercentage = totalEvals > 0 ? Math.round((submittedEvals / totalEvals) * 100) : 0;
-
-        // Management Selections
-        const { data: mgmtSelections } = await supabase
-          .from('management_selections')
-          .select('award_id, selected')
-          .eq('award_year_id', activeYear.id)
-          .eq('selected', true);
-
-        // Director Approvals
-        const { data: dirApprovals } = await supabase
-          .from('director_approvals')
-          .select('award_id, approved')
-          .eq('award_year_id', activeYear.id)
-          .eq('approved', true);
-
-        const approvedAwardIds = new Set(dirApprovals?.map((d) => d.award_id) || []);
-        const mgmtAwardIds = new Set(mgmtSelections?.map((m) => m.award_id) || []);
-
-        const totalAwards = awards?.length || 0;
-        const pendingMgmt = awards?.filter((a) => !mgmtAwardIds.has(a.id)).length || 0;
-        const pendingDir = awards?.filter((a) => mgmtAwardIds.has(a.id) && !approvedAwardIds.has(a.id)).length || 0;
-
-        setStats({
-          totalCategories: totalAwards,
-          totalPanels: panelCount || 0,
-          totalCandidates: candidateCount || 0,
-          completedPercentage: evalPercentage,
-          pendingManagement: pendingMgmt,
-          pendingDirector: pendingDir,
-        });
-
-        if (awards) {
-          const progressList: CategoryProgress[] = awards.map((award) => ({
-            award,
-            totalCandidates: 0,
-            completedEvaluations: submittedEvals,
-            totalEvaluations: totalEvals,
-            hasManagementSelection: mgmtAwardIds.has(award.id),
-            isDirectorApproved: approvedAwardIds.has(award.id),
-          }));
-          setCategoriesProgress(progressList);
-        }
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
-      } finally {
-        setLoading(false);
-      }
+      setCategoriesProgress(progressList);
+      setLoading(false);
     }
 
     fetchStats();

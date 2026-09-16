@@ -10,16 +10,8 @@ export function useAwards() {
   const query = useQuery({
     queryKey: ['awards'],
     queryFn: async () => {
-      if (!isSupabaseConfigured()) {
-        return localDB.getAwards();
-      }
-      try {
-        const { data, error } = await supabase.from('awards').select('*').order('sort_order');
-        if (error) throw error;
-        return (data || []) as Award[];
-      } catch {
-        return localDB.getAwards();
-      }
+      // Sentiasa pulangkan 15 kategori anugerah rasmi KKBDA secara konsisten merentasi semua peranti
+      return localDB.getAwards();
     },
   });
 
