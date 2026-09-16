@@ -178,7 +178,7 @@ export default function DirectorDashboard() {
       <div className="screen-only">
         <PageHeader
           title="Semakan & Kelulusan Anugerah (Pengarah)"
-          subtitle={`Selamat datang, ${profile?.full_name || 'Tuan Pengarah'}. Kuasa pemuktamadan anugerah bagi Sesi Tahun ${activeYear?.year || '-'}.`}
+          subtitle={`Semak senarai semua calon berserta markah purata dan status pengesahan TPA/TPP, serta tandakan kelulusan bagi pertimbangan akhir.`}
           actions={
             <Button
               variant="gold"
@@ -190,30 +190,6 @@ export default function DirectorDashboard() {
             </Button>
           }
         />
-
-        {/* Ringkasan Eksekutif Pengarah */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <StatCard
-            title="JUMLAH KATEGORI"
-            value={awards.length}
-            icon={Award}
-            color="navy"
-          />
-          <StatCard
-            title="DISAHKAN PENGURUSAN (TPA/TPP)"
-            value={totalMgmtVerifiedCount}
-            icon={Clock}
-            color="orange"
-            trend="Perakuan Pengurusan"
-          />
-          <StatCard
-            title="TELAH DILULUSKAN PENGARAH"
-            value={totalApprovedCount}
-            icon={CheckCircle2}
-            color="green"
-            trend="Keputusan Muktamad"
-          />
-        </div>
 
         {/* Filter and Search Bar */}
         <Card className="mb-6">
@@ -271,15 +247,12 @@ export default function DirectorDashboard() {
           </div>
         </Card>
 
-        {/* Info Alert regarding Director Executive Role */}
-        <div className="mb-4 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span>
-              👑 <strong>Kuasa Muktamad Pengarah:</strong> Sila tandakan calon yang diluluskan bagi setiap kategori anugerah. Pilihan anda direkodkan secara langsung (Auto Save) dan boleh dicetak terus untuk tindakan Urus Setia.
-            </span>
+        {/* Info Alert regarding Director Approval */}
+        <div className="mb-4 p-3.5 bg-navy-50 border border-navy-200/60 rounded-xl text-xs text-navy flex items-center justify-between">
+          <span>
+            👑 <strong>Kuasa Muktamad Pengarah:</strong> Semak status Pengesahan TPA/TPP di lajur 6 dan tandakan Kelulusan Pengarah di lajur 7. Sebarang penandaan kelulusan disimpan secara langsung dengan fungsi Simpan Automatik (Auto Save).
           </span>
-          <Badge variant="success">Auto Save Aktif</Badge>
+          <Badge variant="gold">Auto Save Aktif</Badge>
         </div>
 
         {isLoading ? (
@@ -304,9 +277,7 @@ export default function DirectorDashboard() {
                       <th className="px-5 py-4 text-center">4. MARKAH</th>
                       <th className="px-5 py-4 text-center">5. MARKAH PURATA</th>
                       <th className="px-5 py-4 text-center">6. PENGESAHAN</th>
-                      <th className="px-5 py-4 text-center bg-emerald-50/70 text-emerald-900 border-l border-emerald-100">
-                        7. KELULUSAN PENGARAH
-                      </th>
+                      <th className="px-5 py-4 text-center">7. KELULUSAN PENGARAH</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -364,31 +335,27 @@ export default function DirectorDashboard() {
                             </span>
                           </td>
 
-                          {/* 6. PENGESAHAN (TPA/TPP) */}
+                          {/* 6. PENGESAHAN (TPA/TPP status) */}
                           <td className="px-5 py-4 text-center">
-                            {isMgmt ? (
-                              <Badge variant="success" className="font-bold gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                DISAHKAN
-                              </Badge>
-                            ) : (
-                              <span className="text-gray-300 font-medium">—</span>
-                            )}
+                            <div className="inline-flex items-center justify-center p-1" title={isMgmt ? "Disahkan oleh TPA/TPP" : "Belum disahkan oleh TPA/TPP"}>
+                              {isMgmt ? (
+                                <CheckSquare className="w-6 h-6 text-gold fill-gold/10" />
+                              ) : (
+                                <Square className="w-6 h-6 text-gray-200" />
+                              )}
+                            </div>
                           </td>
 
                           {/* 7. KELULUSAN PENGARAH (Tik Button) */}
-                          <td className="px-5 py-4 text-center bg-emerald-50/30 border-l border-emerald-100">
+                          <td className="px-5 py-4 text-center">
                             <button
                               type="button"
                               onClick={() => handleToggleDirectorApproval(cand)}
-                              className="inline-flex items-center justify-center gap-1.5 p-1.5 rounded-lg hover:bg-emerald-100/50 transition-transform active:scale-95"
+                              className="inline-flex items-center justify-center p-1 rounded hover:bg-emerald-50 transition-transform active:scale-95"
                               title={isApproved ? "Batal kelulusan" : "Tandakan untuk kelulusan"}
                             >
                               {isApproved ? (
-                                <div className="flex items-center gap-1 text-emerald-700 font-extrabold">
-                                  <CheckSquare className="w-6 h-6 text-emerald-600 fill-emerald-100" />
-                                  <span className="text-xs tracking-wider">LULUS</span>
-                                </div>
+                                <CheckSquare className="w-6 h-6 text-emerald-600 fill-emerald-100" />
                               ) : (
                                 <Square className="w-6 h-6 text-gray-300 hover:text-emerald-500" />
                               )}
