@@ -65,7 +65,7 @@ export default function AddCandidate() {
 
     setLoading(true);
 
-    if (!isSupabaseConfigured()) {
+    try {
       const newCand = localDB.createCandidate({
         award_id: awardId,
         award_year_id: activeYear.id,
@@ -76,56 +76,27 @@ export default function AddCandidate() {
         position: position.trim() || null,
         created_by: user.id,
       });
+
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.from('audit_logs').insert({
+            user_id: user.id,
+            user_name: profile?.full_name || 'Panel Penilai',
+            user_role: 'panel',
+            action: 'Daftar Calon',
+            details: `Mendaftar calon ${candidateName.trim()} (${effectiveDivision}) untuk kategori ${award?.name}`,
+            entity_type: 'panel_candidate',
+            entity_id: newCand.id,
+          });
+        } catch {}
+      }
+
       toast.success('Calon berjaya ditambah.');
       setLoading(false);
       navigate(`/panel/award/${awardId}/score/${newCand.id}`);
-      return;
-    }
-    try {
-      // 1. Insert into panel_candidates
-      const { data: newCandidate, error: candError } = await supabase
-        .from('panel_candidates')
-        .insert({
-          award_id: awardId,
-          award_year_id: activeYear.id,
-          panel_id: user.id,
-          candidate_name: candidateName.trim(),
-          staff_number: null,
-          division: division.trim(),
-          position: position.trim() || null,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (candError) throw candError;
-
-      // 2. Initialize evaluation draft record
-      await supabase.from('evaluations').insert({
-        panel_candidate_id: newCandidate.id,
-        panel_id: user.id,
-        award_id: awardId,
-        award_year_id: activeYear.id,
-        status: 'draft',
-      });
-
-      // 3. Log audit trail
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        user_name: profile?.full_name || 'Panel Penilai',
-        user_role: 'panel',
-        action: 'Daftar Calon',
-        details: `Mendaftar calon ${candidateName.trim()} (${division.trim()}) untuk kategori ${award?.name}`,
-        entity_type: 'panel_candidate',
-        entity_id: newCandidate.id,
-      });
-
-      toast.success('Calon berjaya ditambah.');
-      navigate(`/panel/award/${awardId}/score/${newCandidate.id}`);
     } catch (err: any) {
       console.error('Error adding candidate:', err);
       toast.error('Ralat menambah calon.');
-    } finally {
       setLoading(false);
     }
   };

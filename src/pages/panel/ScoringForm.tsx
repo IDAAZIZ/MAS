@@ -48,183 +48,80 @@ export default function ScoringForm() {
         return;
       }
 
-      if (!isSupabaseConfigured()) {
+      const awardData = localDB.getAwards().find((a) => a.id === awardId) || null;
+      setAward(awardData);
 
-        const awardData = localDB.getAwards().find((a) => a.id === awardId) || null;
-        setAward(awardData);
-
-        const candData = localDB.getCandidateById(candidateId);
-        if (awardData?.name.toLowerCase().includes('pdp')) {
-          const asgn = localDB.getEvaluatorAssignment(user.id, user.email, awardId, activeYear.id);
-          if (asgn?.division && candData?.division && candData.division.toUpperCase() !== asgn.division.toUpperCase()) {
-            toast.error(`Akses Disekat: Calon ini (${candData.division}) adalah sulit dan hanya boleh dinilai oleh Ketua Program ${candData.division}.`);
-            navigate(`/panel/award/${awardId}`);
-            setLoading(false);
-            return;
-          }
-        }
-        setCandidate(candData);
-
-        const itemSets = localDB.getItemSets();
-        const assignedSet = itemSets.find((s) => s.award_id === awardId) || itemSets[0];
-        let itemsList: AwardItem[] = [];
-        if (assignedSet) {
-          itemsList = localDB.getItemsBySet(assignedSet.id);
-        }
-        if (itemsList.length === 0) {
-          const tmpl = getTemplateForAward(awardId, awardData?.name);
-          if (tmpl) {
-            itemsList = tmpl.items.map((itemDef, idx) => ({
-              id: `${tmpl.setId}-item-${idx + 1}`,
-              item_set_id: tmpl.setId,
-              name: itemDef.name,
-              description: itemDef.description,
-              max_score: itemDef.wajaran,
-              sort_order: idx + 1,
-              rubric_levels: itemDef.rubric_levels,
-              created_at: '',
-              updated_at: '',
-            }));
-          }
-        }
-        setItems(itemsList);
-
-        const evalData = localDB.getEvaluation(candidateId, user.id);
-        if (evalData) {
-          setEvaluation(evalData);
-          setComments(evalData.comments || '');
-          const initialScores: Record<string, number | ''> = {};
-          const initialRawScores: Record<string, number | ''> = {};
-          if (evalData.scores) {
-            evalData.scores.forEach((s) => {
-              initialScores[s.award_item_id] = s.score ?? '';
-              if (s.raw_score !== undefined && s.raw_score !== null) {
-                initialRawScores[s.award_item_id] = s.raw_score;
-              } else if (typeof s.score === 'number' && s.max_score > 0) {
-                initialRawScores[s.award_item_id] = Math.round((s.score / s.max_score) * 5);
-              }
-            });
-          }
-          setScores(initialScores);
-          setRawScores(initialRawScores);
-        } else {
-          setEvaluation({
-            id: `eval-${Date.now()}`,
-            panel_candidate_id: candidateId,
-            panel_id: user.id,
-            award_id: awardId,
-            award_year_id: activeYear.id,
-            total_score: null,
-            status: 'draft',
-            comments: '',
-            submitted_at: null,
-            created_at: '',
-            updated_at: '',
-          });
-        }
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // 1. Fetch award
-        const { data: awardData } = await supabase.from('awards').select('*').eq('id', awardId).single();
-        setAward(awardData);
-
-        // 2. Fetch candidate
-        const { data: candData } = await supabase
-          .from('panel_candidates')
-          .select('*')
-          .eq('id', candidateId)
-          .eq('panel_id', user.id)
-          .single();
-
-        if (!candData) {
-          toast.error('Calon tidak dijumpai atau anda tiada kebenaran.');
+      const candData = localDB.getCandidateById(candidateId);
+      if (awardData?.name.toLowerCase().includes('pdp')) {
+        const asgn = localDB.getEvaluatorAssignment(user.id, user.email, awardId, activeYear.id);
+        if (asgn?.division && candData?.division && candData.division.toUpperCase() !== asgn.division.toUpperCase()) {
+          toast.error(`Akses Disekat: Calon ini (${candData.division}) adalah sulit dan hanya boleh dinilai oleh Ketua Program ${candData.division}.`);
           navigate(`/panel/award/${awardId}`);
+          setLoading(false);
           return;
         }
-        setCandidate(candData);
-
-        // 3. Fetch item set for this award
-        let itemSetId: string | null = null;
-        const { data: assignedSet } = await supabase
-          .from('award_item_sets')
-          .select('id')
-          .eq('award_id', awardId)
-          .single();
-
-        if (assignedSet) {
-          itemSetId = assignedSet.id;
-        } else {
-          const { data: firstSet } = await supabase
-            .from('award_item_sets')
-            .select('id')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-          if (firstSet) itemSetId = firstSet.id;
-        }
-
-        let itemsList: AwardItem[] = [];
-        if (itemSetId) {
-          const { data: itemsData } = await supabase
-            .from('award_items')
-            .select('*')
-            .eq('item_set_id', itemSetId)
-            .order('sort_order');
-          itemsList = itemsData || [];
-        }
-
-        if (itemsList.length === 0) {
-          const tmpl = getTemplateForAward(awardId, awardData?.name);
-          if (tmpl) {
-            itemsList = tmpl.items.map((itemDef, idx) => ({
-              id: `${tmpl.setId}-item-${idx + 1}`,
-              item_set_id: tmpl.setId,
-              name: itemDef.name,
-              description: itemDef.description,
-              max_score: itemDef.wajaran,
-              sort_order: idx + 1,
-              rubric_levels: itemDef.rubric_levels,
-              created_at: '',
-              updated_at: '',
-            }));
-          }
-        }
-        setItems(itemsList);
-
-        // 4. Fetch existing evaluation
-        const { data: evalData } = await supabase
-          .from('evaluations')
-          .select('*, scores:evaluation_scores(*)')
-          .eq('panel_candidate_id', candidateId)
-          .eq('panel_id', user.id)
-          .single();
-
-        if (evalData) {
-          setEvaluation(evalData);
-          setComments((evalData as any).comments || '');
-          const initialScores: Record<string, number | ''> = {};
-          const initialRawScores: Record<string, number | ''> = {};
-          if (evalData.scores) {
-            evalData.scores.forEach((s: any) => {
-              initialScores[s.award_item_id] = s.score;
-              if (s.raw_score !== undefined && s.raw_score !== null) {
-                initialRawScores[s.award_item_id] = s.raw_score;
-              } else if (typeof s.score === 'number' && s.max_score > 0) {
-                initialRawScores[s.award_item_id] = Math.round((s.score / s.max_score) * 5);
-              }
-            });
-          }
-          setScores(initialScores);
-          setRawScores(initialRawScores);
-        }
-      } catch (err) {
-        console.error('Error loading scoring data:', err);
-      } finally {
-        setLoading(false);
       }
+      setCandidate(candData);
+
+      const itemSets = localDB.getItemSets();
+      const assignedSet = itemSets.find((s) => s.award_id === awardId) || itemSets[0];
+      let itemsList: AwardItem[] = [];
+      if (assignedSet) {
+        itemsList = localDB.getItemsBySet(assignedSet.id);
+      }
+      if (itemsList.length === 0) {
+        const tmpl = getTemplateForAward(awardId, awardData?.name);
+        if (tmpl) {
+          itemsList = tmpl.items.map((itemDef, idx) => ({
+            id: `${tmpl.setId}-item-${idx + 1}`,
+            item_set_id: tmpl.setId,
+            name: itemDef.name,
+            description: itemDef.description,
+            max_score: itemDef.wajaran,
+            sort_order: idx + 1,
+            rubric_levels: itemDef.rubric_levels,
+            created_at: '',
+            updated_at: '',
+          }));
+        }
+      }
+      setItems(itemsList);
+
+      const evalData = localDB.getEvaluation(candidateId, user.id);
+      if (evalData) {
+        setEvaluation(evalData);
+        setComments(evalData.comments || '');
+        const initialScores: Record<string, number | ''> = {};
+        const initialRawScores: Record<string, number | ''> = {};
+        if (evalData.scores) {
+          evalData.scores.forEach((s) => {
+            initialScores[s.award_item_id] = s.score ?? '';
+            if (s.raw_score !== undefined && s.raw_score !== null) {
+              initialRawScores[s.award_item_id] = s.raw_score;
+            } else if (typeof s.score === 'number' && s.max_score > 0) {
+              initialRawScores[s.award_item_id] = Math.round((s.score / s.max_score) * 5);
+            }
+          });
+        }
+        setScores(initialScores);
+        setRawScores(initialRawScores);
+      } else {
+        setEvaluation({
+          id: `eval-${Date.now()}`,
+          panel_candidate_id: candidateId,
+          panel_id: user.id,
+          award_id: awardId,
+          award_year_id: activeYear.id,
+          total_score: null,
+          status: 'draft',
+          comments: '',
+          submitted_at: null,
+          created_at: '',
+          updated_at: '',
+        });
+      }
+      setLoading(false);
+      return;
     }
 
     loadData();
@@ -285,47 +182,30 @@ export default function ScoringForm() {
     if (!user || !evaluation || isLocked) return;
     setSavingDraft(true);
     try {
-      if (!isSupabaseConfigured()) {
-        const itemScores = items
-          .filter((item) => scores[item.id] !== '' && scores[item.id] !== undefined)
-          .map((item) => ({
-            award_item_id: item.id,
-            score: Number(scores[item.id]) || 0,
-            raw_score: typeof rawScores[item.id] === 'number' ? Number(rawScores[item.id]) : null,
-            max_score: item.max_score,
-          }));
-        localDB.saveEvaluationScores(evaluation.id, itemScores, comments);
-        setEvaluation((prev) => (prev ? { ...prev, total_score: totalScore, comments } : null));
-        toast.success('Draf berjaya disimpan.');
-        setSavingDraft(false);
-        return;
-      }
+      const itemScores = items
+        .filter((item) => scores[item.id] !== '' && scores[item.id] !== undefined)
+        .map((item) => ({
+          award_item_id: item.id,
+          score: Number(scores[item.id]) || 0,
+          raw_score: typeof rawScores[item.id] === 'number' ? Number(rawScores[item.id]) : null,
+          max_score: item.max_score,
+        }));
+      localDB.saveEvaluationScores(evaluation.id, itemScores, comments);
+      setEvaluation((prev) => (prev ? { ...prev, total_score: totalScore, comments } : null));
 
-      // Upsert scores in Supabase
-      for (const item of items) {
-        const scoreVal = scores[item.id];
-        const rawVal = rawScores[item.id];
-        if (scoreVal !== '' && scoreVal !== undefined) {
-          await supabase.from('evaluation_scores').upsert(
-            {
-              evaluation_id: evaluation.id,
-              award_item_id: item.id,
-              score: scoreVal,
-              max_score: item.max_score,
-              raw_score: typeof rawVal === 'number' ? rawVal : null,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'evaluation_id,award_item_id' }
-          );
-        }
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.from('audit_logs').insert({
+            user_id: user.id,
+            user_name: profile?.full_name || 'Panel Penilai',
+            user_role: 'panel',
+            action: 'Simpan Draf Penilaian',
+            details: `Menyimpan draf markah untuk calon ${candidate?.candidate_name}`,
+            entity_type: 'evaluation',
+            entity_id: evaluation.id,
+          });
+        } catch {}
       }
-
-      // Update total & comments on evaluation
-      await supabase.from('evaluations').update({
-        total_score: totalScore,
-        comments: comments,
-        updated_at: new Date().toISOString(),
-      }).eq('id', evaluation.id);
 
       toast.success('Draf berjaya disimpan.');
     } catch (err: any) {
@@ -356,119 +236,44 @@ export default function ScoringForm() {
     if (!user || !evaluation || !candidate || !activeYear) return;
     setSubmitting(true);
     try {
-      if (!isSupabaseConfigured()) {
-        const itemScores = items.map((item) => ({
-          award_item_id: item.id,
-          score: Number(scores[item.id]) || 0,
-          raw_score: typeof rawScores[item.id] === 'number' ? Number(rawScores[item.id]) : null,
-          max_score: item.max_score,
-        }));
-        localDB.saveEvaluationScores(evaluation.id, itemScores, comments);
-        localDB.submitEvaluation({
-          evaluationId: evaluation.id,
-          candidateId: candidate.id,
-          awardId: awardId!,
-          yearId: activeYear.id,
-          totalScore,
-          candidateName: candidate.candidate_name,
-          staffNumber: candidate.staff_number,
-          division: candidate.division,
-          comments,
-        });
-        setEvaluation((prev) => (prev ? { ...prev, status: 'submitted', total_score: totalScore, comments } : null));
-        toast.success('Penilaian berjaya dihantar.');
-        setConfirmSubmitOpen(false);
-        navigate(`/panel/award/${awardId}`);
-        return;
-      }
-
-      // 1. Save all scores
-      for (const item of items) {
-        const val = Number(scores[item.id]) || 0;
-        const rawVal = rawScores[item.id];
-        await supabase.from('evaluation_scores').upsert(
-          {
-            evaluation_id: evaluation.id,
-            award_item_id: item.id,
-            score: val,
-            raw_score: typeof rawVal === 'number' ? rawVal : null,
-            max_score: item.max_score,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'evaluation_id,award_item_id' }
-        );
-      }
-
-      // 2. Mark evaluation as submitted
-      const submittedAt = new Date().toISOString();
-      await supabase.from('evaluations').update({
-        status: 'submitted',
-        total_score: totalScore,
-        comments: comments,
-        submitted_at: submittedAt,
-      }).eq('id', evaluation.id);
-
-      // 3. CANDIDATE MATCHING & AGGREGATE CALCULATION
-      const identifier = generateCandidateIdentifier(
-        candidate.staff_number,
-        candidate.candidate_name,
-        candidate.division
-      );
-
-      const { data: existingAgg } = await supabase
-        .from('candidate_aggregates')
-        .select('*')
-        .eq('award_id', awardId!)
-        .eq('award_year_id', activeYear.id)
-        .eq('candidate_identifier', identifier)
-        .single();
-
-      if (existingAgg) {
-        const currentScores = (existingAgg.individual_scores || []) as number[];
-        const newScores = [...currentScores, totalScore];
-        const newTotal = newScores.reduce((a, b) => a + b, 0);
-        const newAverage = parseFloat((newTotal / newScores.length).toFixed(2));
-
-        await supabase.from('candidate_aggregates').update({
-          score_count: newScores.length,
-          total_score: newTotal,
-          average_score: newAverage,
-          individual_scores: newScores,
-          candidate_name: candidate.candidate_name,
-          division: candidate.division,
-          updated_at: submittedAt,
-        }).eq('id', existingAgg.id);
-      } else {
-        await supabase.from('candidate_aggregates').insert({
-          award_id: awardId!,
-          award_year_id: activeYear.id,
-          candidate_identifier: identifier,
-          candidate_name: candidate.candidate_name,
-          staff_number: candidate.staff_number || null,
-          division: candidate.division,
-          score_count: 1,
-          total_score: totalScore,
-          average_score: parseFloat(totalScore.toFixed(2)),
-          individual_scores: [totalScore],
-        });
-      }
-
-      // 4. Log audit
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        user_name: profile?.full_name || 'Panel Penilai',
-        user_role: 'panel',
-        action: 'Submit Penilaian',
-        details: `${candidate.candidate_name} (${totalScore}/${totalMaxScore}) - Kategori: ${award?.name}`,
-        entity_type: 'evaluation',
-        entity_id: evaluation.id,
+      const itemScores = items.map((item) => ({
+        award_item_id: item.id,
+        score: Number(scores[item.id]) || 0,
+        raw_score: typeof rawScores[item.id] === 'number' ? Number(rawScores[item.id]) : null,
+        max_score: item.max_score,
+      }));
+      localDB.saveEvaluationScores(evaluation.id, itemScores, comments);
+      localDB.submitEvaluation({
+        evaluationId: evaluation.id,
+        candidateId: candidate.id,
+        awardId: awardId!,
+        yearId: activeYear.id,
+        totalScore,
+        candidateName: candidate.candidate_name,
+        staffNumber: candidate.staff_number,
+        division: candidate.division,
+        comments,
       });
+      setEvaluation((prev) => (prev ? { ...prev, status: 'submitted', total_score: totalScore, comments } : null));
+
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.from('audit_logs').insert({
+            user_id: user.id,
+            user_name: profile?.full_name || 'Panel Penilai',
+            user_role: 'panel',
+            action: 'Hantar Penilaian',
+            details: `Menghantar markah penilaian (Jumlah: ${totalScore}) untuk calon ${candidate.candidate_name}`,
+            entity_type: 'evaluation',
+            entity_id: evaluation.id,
+          });
+        } catch {}
+      }
 
       toast.success('Penilaian berjaya dihantar.');
       setConfirmSubmitOpen(false);
       navigate(`/panel/award/${awardId}`);
     } catch (err: any) {
-      console.error('Error submitting evaluation:', err);
       toast.error('Ralat menghantar penilaian.');
     } finally {
       setSubmitting(false);
